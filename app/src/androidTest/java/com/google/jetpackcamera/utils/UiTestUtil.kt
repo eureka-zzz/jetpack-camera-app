@@ -27,6 +27,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.test.services.storage.TestStorage
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
@@ -64,15 +65,24 @@ val isEmulatorWithFakeFrontCamera: Boolean
         (Build.VERSION.SDK_INT == 28 || Build.VERSION.SDK_INT == 34)
 
 val compatMainActivityExtras: Bundle?
-    get() = if (isEmulatorWithFakeFrontCamera) {
-        // The GMD API 28 and 34 emulators' PackageInfo reports it has front and back cameras, but
-        // GMD is only configured for a back camera. This causes CameraX to take a long time
-        // to initialize. Set the device to use single lens mode to work around this issue.
-        Bundle().apply {
-            putString(MainActivity.KEY_DEBUG_SINGLE_LENS_MODE, "back")
+    get() {
+        val extras = Bundle()
+        if (isEmulatorWithFakeFrontCamera) {
+            // The GMD API 28 and 34 emulators' PackageInfo reports it has front and back cameras, but
+            // GMD is only configured for a back camera. This causes CameraX to take a long time
+            // to initialize. Set the device to use single lens mode to work around this issue.
+            extras.putString(MainActivity.KEY_DEBUG_SINGLE_LENS_MODE, "back")
         }
-    } else {
-        null
+
+        val resolver = InstrumentationRegistry.getInstrumentation().targetContext.contentResolver
+        val args = TestStorage(resolver).getInputArgs()
+        Log.d("UiTestUtil", "TestStorage Args: $args")
+        val disableAnimations = args["disable_animations"]?.toBoolean() ?: false
+        if (disableAnimations) {
+            extras.putBoolean(MainActivity.KEY_DISABLE_ANIMATIONS, true)
+        }
+
+        return if (extras.size() == 0) null else extras
     }
 
 val debugExtra: Bundle = Bundle().apply { putBoolean("KEY_DEBUG_MODE", true) }

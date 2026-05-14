@@ -22,6 +22,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -356,13 +357,15 @@ private fun CaptureButton(
         captureButtonUiState = captureButtonUiState
     )
 
+    val disableAnimations = LocalDisableAnimations.current
+
     val animatedColor by animateColorAsState(
         targetValue = if (isVisuallyDisabled) {
             LocalContentColor.current.copy(alpha = 0.38f)
         } else {
             LocalContentColor.current
         },
-        animationSpec = tween(durationMillis = if (isVisuallyDisabled) 1000 else 300),
+        animationSpec = if (disableAnimations) snap() else tween(durationMillis = if (isVisuallyDisabled) 1000 else 300),
         label = "Capture Button Color"
     )
 
@@ -544,22 +547,38 @@ private fun LockSwitchCaptureButtonNucleus(
                 .offset(x = -(switchWidth - pressedNucleusSize) / 2)
         ) {
             // grey cylinder offset to the left and fades in when pressed recording
-            AnimatedVisibility(
-                visible = captureButtonUiState ==
-                    CaptureButtonUiState.Enabled.Recording.PressedRecording,
-                enter = fadeIn(),
-                exit = ExitTransition.None
-            ) {
-                // grey cylinder
-                Canvas(
-                    modifier = Modifier
-                        .size(switchWidth, switchHeight)
-                        .alpha(LOCK_SWITCH_ALPHA)
+            val disableAnimations = LocalDisableAnimations.current
+            val isVisible = captureButtonUiState == CaptureButtonUiState.Enabled.Recording.PressedRecording
+            if (disableAnimations) {
+                if (isVisible) {
+                    Canvas(
+                        modifier = Modifier
+                            .size(switchWidth, switchHeight)
+                            .alpha(LOCK_SWITCH_ALPHA)
+                    ) {
+                        drawRoundRect(
+                            color = Color.Black,
+                            cornerRadius = CornerRadius((switchWidth / 2).toPx())
+                        )
+                    }
+                }
+            } else {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(),
+                    exit = ExitTransition.None
                 ) {
-                    drawRoundRect(
-                        color = Color.Black,
-                        cornerRadius = CornerRadius((switchWidth / 2).toPx())
-                    )
+                    // grey cylinder
+                    Canvas(
+                        modifier = Modifier
+                            .size(switchWidth, switchHeight)
+                            .alpha(LOCK_SWITCH_ALPHA)
+                    ) {
+                        drawRoundRect(
+                            color = Color.Black,
+                            cornerRadius = CornerRadius((switchWidth / 2).toPx())
+                        )
+                    }
                 }
             }
         }
@@ -576,10 +595,11 @@ private fun LockSwitchCaptureButtonNucleus(
         )
 
         // locked icon, matches cylinder offset
+        val disableAnimations = LocalDisableAnimations.current
         AnimatedVisibility(
             visible = captureButtonUiState ==
                 CaptureButtonUiState.Enabled.Recording.PressedRecording,
-            enter = fadeIn(),
+            enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
             exit = ExitTransition.None
         ) {
             Icon(
@@ -637,6 +657,7 @@ private fun CaptureButtonNucleus(
     }
 
     val currentUiState = rememberUpdatedState(captureButtonUiState)
+    val disableAnimations = LocalDisableAnimations.current
 
     // smoothly animate between the size changes of the capture button center
     val centerShapeSize by animateDpAsState(
@@ -657,7 +678,7 @@ private fun CaptureButtonNucleus(
                 CaptureMode.VIDEO_ONLY -> (captureButtonSize * idleVideoCaptureScale).dp
             }
         },
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+        animationSpec = if (disableAnimations) snap() else tween(durationMillis = 500, easing = FastOutSlowInEasing)
     )
 
     // used to fade between red/white in the center of the capture button
@@ -672,7 +693,7 @@ private fun CaptureButtonNucleus(
             is CaptureButtonUiState.Enabled.Recording -> recordingColor
             is CaptureButtonUiState.Unavailable -> Color.Transparent
         },
-        animationSpec = tween(durationMillis = 500)
+        animationSpec = if (disableAnimations) snap() else tween(durationMillis = 500)
     )
 
     // this box contains and centers everything
@@ -698,20 +719,34 @@ private fun CaptureButtonNucleus(
             ) {}
         }
         // central "square" stop icon
-        AnimatedVisibility(
-            visible = currentUiState.value is
-                CaptureButtonUiState.Enabled.Recording.LockedRecording,
-            enter = scaleIn(initialScale = .5f) + fadeIn(),
-            exit = fadeOut()
-        ) {
-            val smallBoxSize = (captureButtonSize / 5f).dp
-            Canvas(modifier = Modifier) {
-                drawRoundRect(
-                    color = Color.White,
-                    topLeft = Offset(-smallBoxSize.toPx() / 2f, -smallBoxSize.toPx() / 2f),
-                    size = Size(smallBoxSize.toPx(), smallBoxSize.toPx()),
-                    cornerRadius = CornerRadius(smallBoxSize.toPx() * .15f)
-                )
+        val isVisible = currentUiState.value is CaptureButtonUiState.Enabled.Recording.LockedRecording
+        if (disableAnimations) {
+            if (isVisible) {
+                val smallBoxSize = (captureButtonSize / 5f).dp
+                Canvas(modifier = Modifier) {
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset(-smallBoxSize.toPx() / 2f, -smallBoxSize.toPx() / 2f),
+                        size = Size(smallBoxSize.toPx(), smallBoxSize.toPx()),
+                        cornerRadius = CornerRadius(smallBoxSize.toPx() * .15f)
+                    )
+                }
+            }
+        } else {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = scaleIn(initialScale = .5f) + fadeIn(),
+                exit = fadeOut()
+            ) {
+                val smallBoxSize = (captureButtonSize / 5f).dp
+                Canvas(modifier = Modifier) {
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset(-smallBoxSize.toPx() / 2f, -smallBoxSize.toPx() / 2f),
+                        size = Size(smallBoxSize.toPx(), smallBoxSize.toPx()),
+                        cornerRadius = CornerRadius(smallBoxSize.toPx() * .15f)
+                    )
+                }
             }
         }
     }

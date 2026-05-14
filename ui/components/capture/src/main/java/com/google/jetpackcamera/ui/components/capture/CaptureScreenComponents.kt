@@ -26,6 +26,8 @@ import androidx.camera.viewfinder.compose.CoordinateTransformer
 import androidx.camera.viewfinder.compose.MutableCoordinateTransformer
 import androidx.camera.viewfinder.core.ImplementationMode
 import androidx.compose.animation.AnimatedVisibility
+import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutExpo
 import androidx.compose.animation.core.LinearEasing
@@ -210,15 +212,21 @@ fun AmplitudeToggleButton(
     val currentUiState = rememberUpdatedState(audioUiState)
 
     // Tweak the multiplier to amplitude to adjust the visualizer sensitivity
-    val animatedAudioAlpha by animateFloatAsState(
-        targetValue = EaseOutExpo.transform(
-            (currentUiState.value.amplitude.toFloat()).coerceIn(
-                0f,
-                1f
-            )
-        ),
-        label = "AudioAnimation"
-    )
+    val disableAnimations = LocalDisableAnimations.current
+    val animatedAudioAlpha = if (disableAnimations) {
+        1f
+    } else {
+        val alpha by animateFloatAsState(
+            targetValue = EaseOutExpo.transform(
+                (currentUiState.value.amplitude.toFloat()).coerceIn(
+                    0f,
+                    1f
+                )
+            ),
+            label = "AudioAnimation"
+        )
+        alpha
+    }
     Box(contentAlignment = Alignment.Center) {
         FilledIconToggleButton(
             modifier = modifier
@@ -495,9 +503,10 @@ fun PreviewDisplay(
             val height = if (!shouldUseMaxWidth) maxHeight else maxWidth / aspectRatioFloat
             var imageVisible by remember { mutableStateOf(true) }
 
+            val disableAnimations = LocalDisableAnimations.current
             val imageAlpha: Float by animateFloatAsState(
                 targetValue = if (imageVisible) 1f else 0f,
-                animationSpec = tween(
+                animationSpec = if (disableAnimations) snap() else tween(
                     durationMillis = (BLINK_TIME / 2).toInt(),
                     easing = LinearEasing
                 ),
@@ -801,13 +810,18 @@ fun FlipCameraButton(
             if (initialLaunch) {
                 // full 360
                 rotation -= 180f
-                animatedRotation.animateTo(
-                    targetValue = rotation,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessVeryLow
+                val disableAnimations = LocalDisableAnimations.current
+                if (disableAnimations) {
+                    animatedRotation.snapTo(rotation)
+                } else {
+                    animatedRotation.animateTo(
+                        targetValue = rotation,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessVeryLow
+                        )
                     )
-                )
+                }
             }
             // dont rotate on the initial launch
             else {
@@ -843,16 +857,22 @@ private fun FocusMeteringIndicator(
     coordinateTransformer: CoordinateTransformer
 ) {
     if (focusMeteringUiState is FocusMeteringUiState.Specified) {
-        val transition = rememberInfiniteTransition(label = "FocusPulse")
-        val alpha by transition.animateFloat(
-            initialValue = 1f,
-            targetValue = 0.5f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(500),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "FocusPulseAlpha"
-        )
+        val disableAnimations = LocalDisableAnimations.current
+        val alpha = if (disableAnimations) {
+            1f
+        } else {
+            val transition = rememberInfiniteTransition(label = "FocusPulse")
+            val a by transition.animateFloat(
+                initialValue = 1f,
+                targetValue = 0.5f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(500),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "FocusPulseAlpha"
+            )
+            a
+        }
 
         // The indicator for SUCCESS/FAILURE is shown for a short duration
         var showResultIndicator by remember { mutableStateOf(false) }
@@ -881,36 +901,61 @@ private fun FocusMeteringIndicator(
                 }
             }
         val showFocusMeteringIndicator = status == FocusMeteringUiState.Status.RUNNING
-        AnimatedVisibility(
-            visible = showFocusMeteringIndicator || showResultIndicator,
-            enter = fadeIn() + scaleIn(initialScale = 1.5f),
-            exit = fadeOut() + when (focusMeteringUiState.status) {
-                FocusMeteringUiState.Status.SUCCESS -> scaleOut(targetScale = 0.5f)
-                FocusMeteringUiState.Status.FAILURE -> scaleOut(targetScale = 1.5f)
-                else -> fadeOut()
-            },
-            modifier = Modifier
-                .offset { tapCoords.round() }
-                // Offset the indicator to be centered on the tap coordinates
-                .offset(-TAP_TO_FOCUS_INDICATOR_SIZE / 2, -TAP_TO_FOCUS_INDICATOR_SIZE / 2)
-        ) {
-            Box(
-                Modifier
-                    .testTag(FOCUS_METERING_INDICATOR_TAG)
-                    .alpha(
-                        if (focusMeteringUiState.status == FocusMeteringUiState.Status.SUCCESS) {
-                            1f
-                        } else {
-                            alpha
-                        }
-                    )
-                    .border(
-                        1.dp,
-                        Color.White,
-                        CircleShape
-                    )
-                    .size(TAP_TO_FOCUS_INDICATOR_SIZE)
-            )
+        val isVisible = showFocusMeteringIndicator || showResultIndicator
+        if (disableAnimations) {
+            if (isVisible) {
+                Box(
+                    Modifier
+                        .testTag(FOCUS_METERING_INDICATOR_TAG)
+                        .alpha(
+                            if (focusMeteringUiState.status == FocusMeteringUiState.Status.SUCCESS) {
+                                1f
+                            } else {
+                                alpha
+                            }
+                        )
+                        .border(
+                            1.dp,
+                            Color.White,
+                            CircleShape
+                        )
+                        .size(TAP_TO_FOCUS_INDICATOR_SIZE)
+                        .offset { tapCoords.round() }
+                        .offset(-TAP_TO_FOCUS_INDICATOR_SIZE / 2, -TAP_TO_FOCUS_INDICATOR_SIZE / 2)
+                )
+            }
+        } else {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn() + scaleIn(initialScale = 1.5f),
+                exit = fadeOut() + when (focusMeteringUiState.status) {
+                    FocusMeteringUiState.Status.SUCCESS -> scaleOut(targetScale = 0.5f)
+                    FocusMeteringUiState.Status.FAILURE -> scaleOut(targetScale = 1.5f)
+                    else -> fadeOut()
+                },
+                modifier = Modifier
+                    .offset { tapCoords.round() }
+                    // Offset the indicator to be centered on the tap coordinates
+                    .offset(-TAP_TO_FOCUS_INDICATOR_SIZE / 2, -TAP_TO_FOCUS_INDICATOR_SIZE / 2)
+            ) {
+                Box(
+                    Modifier
+                        .testTag(FOCUS_METERING_INDICATOR_TAG)
+                        .alpha(
+                            if (focusMeteringUiState.status == FocusMeteringUiState.Status.SUCCESS) {
+                                1f
+                            } else {
+                                alpha
+                            }
+                        )
+                        .border(
+                            1.dp,
+                            Color.White,
+                            CircleShape
+                        )
+                        .size(TAP_TO_FOCUS_INDICATOR_SIZE)
+                )
+            }
         }
     }
 }

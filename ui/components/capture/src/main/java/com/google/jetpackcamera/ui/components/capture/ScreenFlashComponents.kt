@@ -21,6 +21,8 @@ import android.view.Window
 import android.view.WindowManager
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.snap
+import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -77,10 +79,11 @@ private fun ScreenFlashOverlay(
     modifier: Modifier = Modifier
 ) {
     // Update overlay transparency gradually
+    val disableAnimations = LocalDisableAnimations.current
     val alpha by animateFloatAsState(
         targetValue = if (screenFlashUiState.enabled) 1f else 0f,
         label = "screenFlashAlphaAnimation",
-        animationSpec = tween(),
+        animationSpec = if (disableAnimations) snap() else tween(),
         finishedListener = { screenFlashUiState.onChangeComplete() }
     )
     Box(
