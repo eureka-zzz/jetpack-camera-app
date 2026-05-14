@@ -81,6 +81,9 @@ dependencies {
     implementation(libs.camera.core)
     implementation(libs.camera.compose)
 
+    // Tracing
+    implementation(libs.androidx.tracing)
+
     // Compose - Testing
     androidTestImplementation(libs.compose.junit)
     debugImplementation(libs.compose.test.manifest)

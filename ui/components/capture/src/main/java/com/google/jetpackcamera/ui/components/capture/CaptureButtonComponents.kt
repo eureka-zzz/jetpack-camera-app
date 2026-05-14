@@ -77,6 +77,7 @@ import com.google.jetpackcamera.ui.uistate.capture.CaptureButtonUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.tracing.trace
 
 private const val TAG = "CaptureButton"
 private const val DEFAULT_CAPTURE_BUTTON_SIZE = 80f
@@ -421,8 +422,16 @@ private fun CaptureButton(
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = {},
-                    onDragEnd = {},
-                    onDragCancel = {},
+                    onDragEnd = {
+                        trace("CaptureButton:onDragEnd") {
+                            onRelease(shouldBeLocked())
+                        }
+                    },
+                    onDragCancel = {
+                        trace("CaptureButton:onDragCancel") {
+                            onRelease(false)
+                        }
+                    },
                     onDrag = { change, deltaOffset ->
                         if (currentUiState.value ==
                             CaptureButtonUiState.Enabled.Recording.PressedRecording
