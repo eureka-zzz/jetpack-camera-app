@@ -406,9 +406,12 @@ private fun CaptureButton(
                     onLongPress = {},
                     onPress = {
                         isCaptureButtonPressed = true
-                        onPress()
-                        awaitRelease()
-                        isCaptureButtonPressed = false
+                        try {
+                            onPress()
+                            awaitRelease()
+                        } finally {
+                            isCaptureButtonPressed = false
+                        }
                         if (shouldBeLocked()) {
                             onLockVideoRecording(true)
                             onRelease(true)
