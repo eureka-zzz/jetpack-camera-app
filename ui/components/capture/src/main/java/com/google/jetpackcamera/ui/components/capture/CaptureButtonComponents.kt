@@ -340,7 +340,7 @@ private fun CaptureButton(
     captureButtonSize: Float = DEFAULT_CAPTURE_BUTTON_SIZE
 ) {
     // todo: explore MutableInteractionSource
-    var isCaptureButtonPressed by remember {
+    var isTapping by remember {
         mutableStateOf(false)
     }
 
@@ -390,7 +390,7 @@ private fun CaptureButton(
     fun toggleSwitchPosition() = if (shouldBeLocked()) {
         switchPosition = LOCK_SWITCH_POSITION_OFF
     } else {
-        if (!isCaptureButtonPressed) {
+        if (!isTapping) {
             onLockVideoRecording(true)
         } else {
             switchPosition =
@@ -405,12 +405,12 @@ private fun CaptureButton(
                     // touch is dragged off the component
                     onLongPress = {},
                     onPress = {
-                        isCaptureButtonPressed = true
+                        isTapping = true
                         try {
                             onPress()
                             awaitRelease()
                         } finally {
-                            isCaptureButtonPressed = false
+                            isTapping = false
                         }
                         if (shouldBeLocked()) {
                             onLockVideoRecording(true)
@@ -497,7 +497,7 @@ private fun CaptureButton(
         } else {
             CaptureButtonNucleus(
                 captureButtonUiState = captureButtonUiState,
-                isPressed = isCaptureButtonPressed,
+                isTapping = isTapping,
                 captureButtonSize = captureButtonSize
             )
         }
@@ -629,7 +629,7 @@ private fun LockSwitchCaptureButtonNucleus(
 private fun CaptureButtonNucleus(
     modifier: Modifier = Modifier,
     captureButtonUiState: CaptureButtonUiState,
-    isPressed: Boolean,
+    isTapping: Boolean,
     captureButtonSize: Float,
     offsetX: Dp = 0.dp,
     recordingColor: Color = Color.Red,
@@ -697,7 +697,7 @@ private fun CaptureButtonNucleus(
                     .size(centerShapeSize)
                     .clip(CircleShape)
                     .alpha(
-                        if (isPressed &&
+                        if (isTapping &&
                             currentUiState.value ==
                             CaptureButtonUiState.Enabled.Idle(CaptureMode.IMAGE_ONLY)
                         ) {
