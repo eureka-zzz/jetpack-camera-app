@@ -212,22 +212,24 @@ internal fun CaptureButton(
         }
     }
     fun onLongPress() {
-        if (!isLongPressing.value) {
-            when (val current = currentUiState.value) {
-                is CaptureButtonUiState.Enabled.Idle -> when (current.captureMode) {
-                    CaptureMode.STANDARD,
-                    CaptureMode.VIDEO_ONLY -> {
-                        isLongPressing.value = true
-                        Log.d(TAG, "Starting recording")
-                        onStartRecording()
+        trace("CaptureButton.onLongPress") {
+            if (!isLongPressing.value) {
+                when (val current = currentUiState.value) {
+                    is CaptureButtonUiState.Enabled.Idle -> when (current.captureMode) {
+                        CaptureMode.STANDARD,
+                        CaptureMode.VIDEO_ONLY -> {
+                            isLongPressing.value = true
+                            Log.d(TAG, "Starting recording")
+                            onStartRecording()
+                        }
+
+                        CaptureMode.IMAGE_ONLY -> {
+                            isLongPressing.value = true
+                        }
                     }
 
-                    CaptureMode.IMAGE_ONLY -> {
-                        isLongPressing.value = true
-                    }
+                    else -> {}
                 }
-
-                else -> {}
             }
         }
     }
@@ -407,7 +409,9 @@ private fun CaptureButton(
                     onPress = {
                         isTapping = true
                         try {
-                            onPress()
+                            trace("CaptureButton.onPress") {
+                                onPress()
+                            }
                             awaitRelease()
                         } finally {
                             isTapping = false
@@ -426,42 +430,44 @@ private fun CaptureButton(
                 detectDragGesturesAfterLongPress(
                     onDragStart = {},
                     onDragEnd = {
-                        trace("CaptureButton:onDragEnd") {
+                        trace("CaptureButton.onDragEnd") {
                             onRelease(shouldBeLocked())
                         }
                     },
                     onDragCancel = {
-                        trace("CaptureButton:onDragCancel") {
+                        trace("CaptureButton.onDragCancel") {
                             onRelease(false)
                         }
                     },
                     onDrag = { change, deltaOffset ->
-                        if (currentUiState.value ==
-                            CaptureButtonUiState.Enabled.Recording.PressedRecording
-                        ) {
-                            val newPoint = change.position
+                        trace("CaptureButton.onDrag") {
+                            if (currentUiState.value ==
+                                CaptureButtonUiState.Enabled.Recording.PressedRecording
+                            ) {
+                                val newPoint = change.position
 
-                            // update position of lock switch
-                            setLockSwitchPosition(newPoint.x, deltaOffset.x)
+                                // update position of lock switch
+                                setLockSwitchPosition(newPoint.x, deltaOffset.x)
 
-                            // update zoom
-                            val previousPoint = change.position - deltaOffset
-                            val positiveDistance =
-                                if (newPoint.y >= 0 && previousPoint.y >= 0) {
-                                    // 0 if both points are within bounds
-                                    0f
-                                } else if (newPoint.y < 0 && previousPoint.y < 0) {
-                                    deltaOffset.y
-                                } else if (newPoint.y <= 0) {
-                                    newPoint.y
-                                } else {
-                                    previousPoint.y
+                                // update zoom
+                                val previousPoint = change.position - deltaOffset
+                                val positiveDistance =
+                                    if (newPoint.y >= 0 && previousPoint.y >= 0) {
+                                        // 0 if both points are within bounds
+                                        0f
+                                    } else if (newPoint.y < 0 && previousPoint.y < 0) {
+                                        deltaOffset.y
+                                    } else if (newPoint.y <= 0) {
+                                        newPoint.y
+                                    } else {
+                                        previousPoint.y
+                                    }
+
+                                if (!positiveDistance.isNaN()) {
+                                    // todo(kc): should check the tuning of this.
+                                    val zoom = positiveDistance * -0.01f // Adjust sensitivity
+                                    onDragZoom(zoom)
                                 }
-
-                            if (!positiveDistance.isNaN()) {
-                                // todo(kc): should check the tuning of this.
-                                val zoom = positiveDistance * -0.01f // Adjust sensitivity
-                                onDragZoom(zoom)
                             }
                         }
                     }
