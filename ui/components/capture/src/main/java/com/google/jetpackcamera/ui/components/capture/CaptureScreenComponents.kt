@@ -26,6 +26,8 @@ import androidx.camera.viewfinder.compose.CoordinateTransformer
 import androidx.camera.viewfinder.compose.MutableCoordinateTransformer
 import androidx.camera.viewfinder.core.ImplementationMode
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.Animatable
@@ -902,60 +904,31 @@ private fun FocusMeteringIndicator(
             }
         val showFocusMeteringIndicator = status == FocusMeteringUiState.Status.RUNNING
         val isVisible = showFocusMeteringIndicator || showResultIndicator
-        if (disableAnimations) {
-            if (isVisible) {
-                Box(
-                    Modifier
-                        .testTag(FOCUS_METERING_INDICATOR_TAG)
-                        .alpha(
-                            if (focusMeteringUiState.status == FocusMeteringUiState.Status.SUCCESS) {
-                                1f
-                            } else {
-                                alpha
-                            }
-                        )
-                        .border(
-                            1.dp,
-                            Color.White,
-                            CircleShape
-                        )
-                        .size(TAP_TO_FOCUS_INDICATOR_SIZE)
-                        .offset { tapCoords.round() }
-                        .offset(-TAP_TO_FOCUS_INDICATOR_SIZE / 2, -TAP_TO_FOCUS_INDICATOR_SIZE / 2)
-                )
-            }
-        } else {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn() + scaleIn(initialScale = 1.5f),
-                exit = fadeOut() + when (focusMeteringUiState.status) {
-                    FocusMeteringUiState.Status.SUCCESS -> scaleOut(targetScale = 0.5f)
-                    FocusMeteringUiState.Status.FAILURE -> scaleOut(targetScale = 1.5f)
-                    else -> fadeOut()
-                },
-                modifier = Modifier
-                    .offset { tapCoords.round() }
-                    // Offset the indicator to be centered on the tap coordinates
-                    .offset(-TAP_TO_FOCUS_INDICATOR_SIZE / 2, -TAP_TO_FOCUS_INDICATOR_SIZE / 2)
-            ) {
-                Box(
-                    Modifier
-                        .testTag(FOCUS_METERING_INDICATOR_TAG)
-                        .alpha(
-                            if (focusMeteringUiState.status == FocusMeteringUiState.Status.SUCCESS) {
-                                1f
-                            } else {
-                                alpha
-                            }
-                        )
-                        .border(
-                            1.dp,
-                            Color.White,
-                            CircleShape
-                        )
-                        .size(TAP_TO_FOCUS_INDICATOR_SIZE)
-                )
-            }
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = if (disableAnimations) EnterTransition.None else fadeIn() + scaleIn(initialScale = 1.5f),
+            exit = if (disableAnimations) ExitTransition.None else fadeOut() + when (focusMeteringUiState.status) {
+                FocusMeteringUiState.Status.SUCCESS -> scaleOut(targetScale = 0.5f)
+                FocusMeteringUiState.Status.FAILURE -> scaleOut(targetScale = 1.5f)
+                else -> fadeOut()
+            },
+            modifier = Modifier
+                .offset { tapCoords.round() }
+                .offset(-TAP_TO_FOCUS_INDICATOR_SIZE / 2, -TAP_TO_FOCUS_INDICATOR_SIZE / 2)
+        ) {
+            Box(
+                Modifier
+                    .testTag(FOCUS_METERING_INDICATOR_TAG)
+                    .alpha(
+                        if (focusMeteringUiState.status == FocusMeteringUiState.Status.SUCCESS) 1f else alpha
+                    )
+                    .border(
+                        1.dp,
+                        Color.White,
+                        CircleShape
+                    )
+                    .size(TAP_TO_FOCUS_INDICATOR_SIZE)
+            )
         }
     }
 }
