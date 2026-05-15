@@ -82,7 +82,7 @@ val compatMainActivityExtras: Bundle?
             extras.putBoolean(MainActivity.KEY_DISABLE_ANIMATIONS, true)
         }
 
-        return if (extras.size() == 0) null else extras
+        return extras.takeIf { !it.isEmpty() }
     }
 
 val debugExtra: Bundle = Bundle().apply { putBoolean("KEY_DEBUG_MODE", true) }

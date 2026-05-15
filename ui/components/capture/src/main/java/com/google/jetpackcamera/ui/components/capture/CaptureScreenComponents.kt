@@ -215,20 +215,11 @@ fun AmplitudeToggleButton(
 
     // Tweak the multiplier to amplitude to adjust the visualizer sensitivity
     val disableAnimations = LocalDisableAnimations.current
-    val animatedAudioAlpha = if (disableAnimations) {
-        1f
-    } else {
-        val alpha by animateFloatAsState(
-            targetValue = EaseOutExpo.transform(
-                (currentUiState.value.amplitude.toFloat()).coerceIn(
-                    0f,
-                    1f
-                )
-            ),
-            label = "AudioAnimation"
-        )
-        alpha
-    }
+    val animatedAudioAlpha by animateFloatAsState(
+        targetValue = if (disableAnimations) 1f else EaseOutExpo.transform((currentUiState.value.amplitude.toFloat()).coerceIn(0f, 1f)),
+        animationSpec = if (disableAnimations) snap() else tween(),
+        label = "AudioAnimation"
+    )
     Box(contentAlignment = Alignment.Center) {
         FilledIconToggleButton(
             modifier = modifier
