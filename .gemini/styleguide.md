@@ -68,6 +68,7 @@ When reviewing a pull request, focus on the following key areas:
     *   **Scrutinize Debug Logs:** Question the use of `Log.d`, `Log.v`, and especially `println()`. These are often remnants of debugging and should be removed before merging unless they provide essential, long-term value. Calls to `println()` should always be replaced with a proper `Log` method.
     *   **KDoc for Complexity:** For new or significantly modified functions that are complex, have non-obvious logic, or a large number of parameters, suggest adding KDoc comments. Good documentation should explain the function's purpose, its parameters, and what it returns.
     *   **Keep KDoc Synchronized:** If a PR modifies a function with existing KDocs, verify that the comments are still accurate. Outdated documentation can be more misleading than no documentation at all.
+    *   **Trace Naming Scheme:** Standardize on `ComponentName.actionName` or `ClassName.methodName` for custom trace sections to make them easily searchable in Perfetto. [Introduced in PR #518]
 
 11. **KDoc Documentation Standards**
     *   **Document all non-private members:** All non-private classes, functions, and composables must have KDoc documentation.
