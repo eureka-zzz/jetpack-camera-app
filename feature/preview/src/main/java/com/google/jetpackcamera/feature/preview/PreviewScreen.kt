@@ -21,6 +21,7 @@ import android.util.Log
 import android.util.Range
 import androidx.camera.core.SurfaceRequest
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -477,58 +478,34 @@ private fun ContentScreen(
         elapsedTimeDisplay = {
             val disableAnimations = LocalDisableAnimations.current
             val isVisible = captureUiState.videoRecordingState is VideoRecordingState.Active
-            if (disableAnimations) {
-                if (isVisible) {
-                    ElapsedTimeText(
-                        modifier = Modifier.testTag(ELAPSED_TIME_TAG),
-                        elapsedTimeUiState = captureUiState.elapsedTimeUiState
-                    )
-                }
-            } else {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(),
-                    exit = fadeOut(animationSpec = tween(delayMillis = 1_500))
-                ) {
-                    ElapsedTimeText(
-                        modifier = Modifier.testTag(ELAPSED_TIME_TAG),
-                        elapsedTimeUiState = captureUiState.elapsedTimeUiState
-                    )
-                }
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
+                exit = if (disableAnimations) fadeOut(animationSpec = snap()) else fadeOut(animationSpec = tween(delayMillis = 1_500))
+            ) {
+                ElapsedTimeText(
+                    modifier = Modifier.testTag(ELAPSED_TIME_TAG),
+                    elapsedTimeUiState = captureUiState.elapsedTimeUiState
+                )
             }
         },
         quickSettingsButton = { modifier ->
             val isQuickSettingsVisible = captureUiState.videoRecordingState !is VideoRecordingState.Active
             val disableAnimations = LocalDisableAnimations.current
-            if (disableAnimations) {
-                if (isQuickSettingsVisible) {
-                    quickSettingsController?.let { qsc ->
-                        ToggleQuickSettingsButton(
-                            modifier = modifier,
-                            isOpen = (
-                                captureUiState.quickSettingsUiState
-                                    as? QuickSettingsUiState.Available
-                                )?.quickSettingsIsOpen == true,
-                            quickSettingsController = qsc
-                        )
-                    }
-                }
-            } else {
-                AnimatedVisibility(
-                    visible = isQuickSettingsVisible,
-                    enter = fadeIn(),
-                    exit = fadeOut(animationSpec = tween(delayMillis = 1_500))
-                ) {
-                    quickSettingsController?.let { qsc ->
-                        ToggleQuickSettingsButton(
-                            modifier = modifier,
-                            isOpen = (
-                                captureUiState.quickSettingsUiState
-                                    as? QuickSettingsUiState.Available
-                                )?.quickSettingsIsOpen == true,
-                            quickSettingsController = qsc
-                        )
-                    }
+            AnimatedVisibility(
+                visible = isQuickSettingsVisible,
+                enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
+                exit = if (disableAnimations) fadeOut(animationSpec = snap()) else fadeOut(animationSpec = tween(delayMillis = 1_500))
+            ) {
+                quickSettingsController?.let { qsc ->
+                    ToggleQuickSettingsButton(
+                        modifier = modifier,
+                        isOpen = (
+                            captureUiState.quickSettingsUiState
+                                as? QuickSettingsUiState.Available
+                            )?.quickSettingsIsOpen == true,
+                        quickSettingsController = qsc
+                    )
                 }
             }
         },
