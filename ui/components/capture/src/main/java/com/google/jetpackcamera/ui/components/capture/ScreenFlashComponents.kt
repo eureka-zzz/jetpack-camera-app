@@ -20,9 +20,8 @@ import android.util.Log
 import android.view.Window
 import android.view.WindowManager
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.snap
-import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize

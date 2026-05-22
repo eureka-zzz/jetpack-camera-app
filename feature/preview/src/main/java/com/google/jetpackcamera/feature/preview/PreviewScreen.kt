@@ -25,7 +25,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -82,6 +81,7 @@ import com.google.jetpackcamera.ui.components.capture.ElapsedTimeText
 import com.google.jetpackcamera.ui.components.capture.FLIP_CAMERA_BUTTON
 import com.google.jetpackcamera.ui.components.capture.FlipCameraButton
 import com.google.jetpackcamera.ui.components.capture.ImageWell
+import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
 import com.google.jetpackcamera.ui.components.capture.PauseResumeToggleButton
 import com.google.jetpackcamera.ui.components.capture.PreviewDisplay
 import com.google.jetpackcamera.ui.components.capture.PreviewLayout
@@ -544,7 +544,11 @@ private fun ContentScreen(
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
-                    exit = if (disableAnimations) fadeOut(animationSpec = snap()) else fadeOut(animationSpec = tween(delayMillis = 1_500))
+                    exit = if (disableAnimations) {
+                        fadeOut(animationSpec = snap())
+                    } else {
+                        fadeOut(animationSpec = tween(delayMillis = 1_500))
+                    }
                 ) {
                     val elapsedTimeModifier = remember(modifier) {
                         modifier.testTag(ELAPSED_TIME_TAG)
@@ -562,12 +566,17 @@ private fun ContentScreen(
         @Composable { modifier: Modifier ->
             val readyState = captureUiStateProvider()
             if (readyState != null) {
-                val isQuickSettingsVisible = readyState.videoRecordingState !is VideoRecordingState.Active
+                val isQuickSettingsVisible =
+                    readyState.videoRecordingState !is VideoRecordingState.Active
                 val disableAnimations = LocalDisableAnimations.current
                 AnimatedVisibility(
                     visible = isQuickSettingsVisible,
                     enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
-                    exit = if (disableAnimations) fadeOut(animationSpec = snap()) else fadeOut(animationSpec = tween(delayMillis = 1_500))
+                    exit = if (disableAnimations) {
+                        fadeOut(animationSpec = snap())
+                    } else {
+                        fadeOut(animationSpec = tween(delayMillis = 1_500))
+                    }
                 ) {
                     quickSettingsController?.let { quickSettingsController ->
                         ToggleQuickSettingsButton(

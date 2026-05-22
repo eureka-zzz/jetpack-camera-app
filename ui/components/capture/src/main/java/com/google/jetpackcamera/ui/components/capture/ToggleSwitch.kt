@@ -19,9 +19,8 @@ import android.content.res.Configuration
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.snap
-import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -114,7 +113,11 @@ fun ToggleSwitch(
     // This snaps (0ms) during drag and animates (300ms) on tap or drag release.
     val animatedPosition by animateFloatAsState(
         targetValue = (targetPosition + (dragOffset / dims.dragRange)).coerceIn(0f, 1f),
-        animationSpec = if (disableAnimations) snap() else tween(durationMillis = if (dragOffset == 0f) 300 else 0),
+        animationSpec = if (disableAnimations) {
+            snap()
+        } else {
+            tween(durationMillis = if (dragOffset == 0f) 300 else 0)
+        },
         label = "thumbPosition"
     )
     val initialThumbX = dims.startX + dims.dragRange * animatedPosition

@@ -28,8 +28,6 @@ import androidx.camera.viewfinder.core.ImplementationMode
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutExpo
 import androidx.compose.animation.core.LinearEasing
@@ -39,6 +37,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -225,7 +224,11 @@ fun AmplitudeToggleButton(
     // Tweak the multiplier to amplitude to adjust the visualizer sensitivity
     val disableAnimations = LocalDisableAnimations.current
     val animatedAudioAlpha by animateFloatAsState(
-        targetValue = if (disableAnimations) 1f else EaseOutExpo.transform((currentUiState.value.amplitude.toFloat()).coerceIn(0f, 1f)),
+        targetValue = if (disableAnimations) {
+            1f
+        } else {
+            EaseOutExpo.transform((currentUiState.value.amplitude.toFloat()).coerceIn(0f, 1f))
+        },
         animationSpec = if (disableAnimations) snap() else tween(),
         label = "AudioAnimation"
     )
@@ -508,10 +511,14 @@ fun PreviewDisplay(
             val disableAnimations = LocalDisableAnimations.current
             val imageAlpha: Float by animateFloatAsState(
                 targetValue = if (imageVisible) 1f else 0f,
-                animationSpec = if (disableAnimations) snap() else tween(
-                    durationMillis = (BLINK_TIME / 2).toInt(),
-                    easing = LinearEasing
-                ),
+                animationSpec = if (disableAnimations) {
+                    snap()
+                } else {
+                    tween(
+                        durationMillis = (BLINK_TIME / 2).toInt(),
+                        easing = LinearEasing
+                    )
+                },
                 label = ""
             )
 
@@ -808,11 +815,11 @@ fun FlipCameraButton(
         var initialLaunch by remember { mutableStateOf(false) }
 
         // spin animate whenever lensfacing changes
+        val disableAnimations = LocalDisableAnimations.current
         LaunchedEffect(flipLensUiState.selectedLensFacing) {
             if (initialLaunch) {
                 // full 360
                 rotation -= 180f
-                val disableAnimations = LocalDisableAnimations.current
                 if (disableAnimations) {
                     animatedRotation.snapTo(rotation)
                 } else {
@@ -906,11 +913,19 @@ private fun FocusMeteringIndicator(
         val isVisible = showFocusMeteringIndicator || showResultIndicator
         AnimatedVisibility(
             visible = isVisible,
-            enter = if (disableAnimations) EnterTransition.None else fadeIn() + scaleIn(initialScale = 1.5f),
-            exit = if (disableAnimations) ExitTransition.None else fadeOut() + when (focusMeteringUiState.status) {
-                FocusMeteringUiState.Status.SUCCESS -> scaleOut(targetScale = 0.5f)
-                FocusMeteringUiState.Status.FAILURE -> scaleOut(targetScale = 1.5f)
-                else -> fadeOut()
+            enter = if (disableAnimations) {
+                EnterTransition.None
+            } else {
+                fadeIn() + scaleIn(initialScale = 1.5f)
+            },
+            exit = if (disableAnimations) {
+                ExitTransition.None
+            } else {
+                fadeOut() + when (focusMeteringUiState.status) {
+                    FocusMeteringUiState.Status.SUCCESS -> scaleOut(targetScale = 0.5f)
+                    FocusMeteringUiState.Status.FAILURE -> scaleOut(targetScale = 1.5f)
+                    else -> fadeOut()
+                }
             },
             modifier = Modifier
                 .offset { tapCoords.round() }
@@ -920,7 +935,13 @@ private fun FocusMeteringIndicator(
                 Modifier
                     .testTag(FOCUS_METERING_INDICATOR_TAG)
                     .alpha(
-                        if (focusMeteringUiState.status == FocusMeteringUiState.Status.SUCCESS) 1f else alpha
+                        if (focusMeteringUiState.status ==
+                            FocusMeteringUiState.Status.SUCCESS
+                        ) {
+                            1f
+                        } else {
+                            alpha
+                        }
                     )
                     .border(
                         1.dp,

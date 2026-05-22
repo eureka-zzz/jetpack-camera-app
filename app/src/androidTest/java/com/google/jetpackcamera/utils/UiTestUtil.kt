@@ -27,7 +27,6 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.test.services.storage.TestStorage
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
