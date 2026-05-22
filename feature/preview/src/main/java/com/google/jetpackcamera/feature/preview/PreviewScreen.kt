@@ -21,7 +21,6 @@ import android.util.Log
 import android.util.Range
 import androidx.camera.core.SurfaceRequest
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -81,7 +80,6 @@ import com.google.jetpackcamera.ui.components.capture.ElapsedTimeText
 import com.google.jetpackcamera.ui.components.capture.FLIP_CAMERA_BUTTON
 import com.google.jetpackcamera.ui.components.capture.FlipCameraButton
 import com.google.jetpackcamera.ui.components.capture.ImageWell
-import com.google.jetpackcamera.ui.components.capture.LocalDisableAnimations
 import com.google.jetpackcamera.ui.components.capture.PauseResumeToggleButton
 import com.google.jetpackcamera.ui.components.capture.PreviewDisplay
 import com.google.jetpackcamera.ui.components.capture.PreviewLayout
@@ -111,6 +109,7 @@ import com.google.jetpackcamera.ui.uistate.capture.AudioUiState
 import com.google.jetpackcamera.ui.uistate.capture.CaptureButtonUiState
 import com.google.jetpackcamera.ui.uistate.capture.CaptureModeToggleUiState
 import com.google.jetpackcamera.ui.uistate.capture.DebugUiState
+import com.google.jetpackcamera.ui.uistate.capture.ElapsedTimeUiState
 import com.google.jetpackcamera.ui.uistate.capture.FlipLensUiState
 import com.google.jetpackcamera.ui.uistate.capture.ImageWellUiState
 import com.google.jetpackcamera.ui.uistate.capture.ZoomControlUiState
@@ -238,7 +237,16 @@ fun PreviewScreen(
             )
         }
         // todo(kc) handle reset certain values after video recording is complete
-        LaunchedEffect(currentUiState.videoRecordingState) {
+        val recordingStateKey = remember {
+            derivedStateOf {
+                when (currentUiState.videoRecordingState) {
+                    is VideoRecordingState.Starting -> 1
+                    is VideoRecordingState.Inactive -> 2
+                    else -> 0
+                }
+            }
+        }
+        LaunchedEffect(recordingStateKey.value) {
             with(currentUiState.videoRecordingState) {
                 when (this) {
                     is VideoRecordingState.Starting -> {
@@ -537,27 +545,31 @@ private fun ContentScreen(
 
     val elapsedTimeDisplayLambda = remember {
         @Composable { modifier: Modifier ->
-            val readyState = captureUiStateProvider()
-            if (readyState != null) {
-                val disableAnimations = LocalDisableAnimations.current
-                val isVisible = readyState.videoRecordingState is VideoRecordingState.Active
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
-                    exit = if (disableAnimations) {
-                        fadeOut(animationSpec = snap())
-                    } else {
-                        fadeOut(animationSpec = tween(delayMillis = 1_500))
-                    }
-                ) {
-                    val elapsedTimeModifier = remember(modifier) {
-                        modifier.testTag(ELAPSED_TIME_TAG)
-                    }
-                    ElapsedTimeText(
-                        modifier = elapsedTimeModifier,
-                        elapsedTimeUiState = readyState.elapsedTimeUiState
-                    )
+            val isVisible = remember {
+                derivedStateOf {
+                    captureUiStateProvider()?.videoRecordingState is VideoRecordingState.Active
                 }
+            }
+            val disableAnimations = LocalDisableAnimations.current
+            AnimatedVisibility(
+                visible = isVisible.value,
+                enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
+                exit = if (disableAnimations) {
+                    fadeOut(animationSpec = snap())
+                } else {
+                    fadeOut(animationSpec = tween(delayMillis = 1_500))
+                }
+            ) {
+                val elapsedTimeModifier = remember(modifier) {
+                    modifier.testTag(ELAPSED_TIME_TAG)
+                }
+                ElapsedTimeText(
+                    modifier = elapsedTimeModifier,
+                    formattedTimeProvider = {
+                        captureUiStateProvider()?.elapsedTimeUiState
+                            ?: ElapsedTimeUiState.Unavailable
+                    }
+                )
             }
         }
     }
@@ -566,11 +578,9 @@ private fun ContentScreen(
         @Composable { modifier: Modifier ->
             val readyState = captureUiStateProvider()
             if (readyState != null) {
-                val isQuickSettingsVisible =
-                    readyState.videoRecordingState !is VideoRecordingState.Active
                 val disableAnimations = LocalDisableAnimations.current
                 AnimatedVisibility(
-                    visible = isQuickSettingsVisible,
+                    visible = (readyState.videoRecordingState !is VideoRecordingState.Active),
                     enter = if (disableAnimations) fadeIn(animationSpec = snap()) else fadeIn(),
                     exit = if (disableAnimations) {
                         fadeOut(animationSpec = snap())
