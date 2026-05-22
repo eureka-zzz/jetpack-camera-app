@@ -42,6 +42,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToString
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.action.ViewActions.swipeDown
+import androidx.tracing.trace
 import com.google.common.truth.Truth.assertThat
 import com.google.errorprone.annotations.CanIgnoreReturnValue
 import com.google.jetpackcamera.model.CaptureMode
@@ -249,60 +250,87 @@ fun ComposeTestRule.pressAndDragToLockVideoRecording(
         onNodeWithTag(VIDEO_CAPTURE_FAILURE_TAG).assertIsNotDisplayed()
     }
 ) {
-    onNodeWithTag(CAPTURE_BUTTON)
-        .assertExists()
-        .performTouchInput {
-            down(center)
+    trace("pressAndDragToLockVideoRecording") {
+        onNodeWithTag(CAPTURE_BUTTON).assertExists().performTouchInput {
+            trace("down(center)") { down(center) }
+            trace("wait for long press and trigger onDragStart") {
+                advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+                moveBy(delta = Offset(1f, 0f))
+            }
         }
-    waitUntil(timeoutMillis = ELAPSED_TIME_TEXT_TIMEOUT_MILLIS) {
-        checkWhileWaiting()
-        onNodeWithTag(ELAPSED_TIME_TAG).isDisplayed()
+
+        // Wait for recording to start (timer displayed)
+        trace("wait for ELAPSED_TIME_TAG") {
+            waitUntil(timeoutMillis = ELAPSED_TIME_TEXT_TIMEOUT_MILLIS) {
+                onNodeWithTag(ELAPSED_TIME_TAG).isDisplayed()
+            }
+        }
+
+        onNodeWithTag(CAPTURE_BUTTON).performTouchInput {
+            trace("drag to lock") {
+                val steps = 10
+                val deltaX = -400f / steps
+                for (i in 1..steps) {
+                    moveBy(delta = Offset(deltaX, 0f))
+                }
+            }
+        }
+
+        onNodeWithTag(CAPTURE_BUTTON).performTouchInput { trace("up()") { up() } }
+
+        // Wait for the recording to reach desired duration
+        trace("waitUntilVideoRecordingDurationAtLeast") {
+            waitUntilVideoRecordingDurationAtLeast(durationMillis, checkWhileWaiting)
+        }
     }
-    onNodeWithTag(CAPTURE_BUTTON)
-        .assertExists()
-        .performTouchInput {
-            moveBy(delta = Offset(-400f, 0f))
-            up()
-        }
-    waitUntilVideoRecordingDurationAtLeast(durationMillis, checkWhileWaiting)
 }
 
 fun ComposeTestRule.longClickForVideoRecordingCheckingElapsedTime(
     durationMillis: Long = VIDEO_DURATION_MILLIS,
     checkWhileWaiting: () -> Unit = {
         // If the video capture fails, there is no point to continue waiting. Assert.
-        onNodeWithTag(VIDEO_CAPTURE_FAILURE_TAG).assertIsNotDisplayed()
+        if (onAllNodesWithTag(VIDEO_CAPTURE_FAILURE_TAG).fetchSemanticsNodes().isNotEmpty()) {
+            throw AssertionError("Video capture failed!")
+        }
     }
 ) {
-    onNodeWithTag(CAPTURE_BUTTON)
-        .assertExists()
-        .performTouchInput {
-            down(center)
+    trace("longClickForVideoRecordingCheckingElapsedTime") {
+        onNodeWithTag(CAPTURE_BUTTON).assertExists().performTouchInput {
+            trace("down(center)") { down(center) }
+
+            trace("wait for long press and trigger onDragStart") {
+                advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+                moveBy(delta = Offset(1f, 0f))
+            }
         }
-    waitUntil(timeoutMillis = ELAPSED_TIME_TEXT_TIMEOUT_MILLIS) {
-        checkWhileWaiting()
-        onNodeWithTag(ELAPSED_TIME_TAG).isDisplayed()
+
+        // Wait for recording to start (timer displayed)
+        trace("wait for ELAPSED_TIME_TAG") {
+            waitUntil(timeoutMillis = ELAPSED_TIME_TEXT_TIMEOUT_MILLIS) {
+                onAllNodesWithTag(ELAPSED_TIME_TAG).fetchSemanticsNodes().isNotEmpty()
+            }
+        }
+
+        // Wait for the desired duration outside performTouchInput
+        waitUntilVideoRecordingDurationAtLeast(durationMillis, checkWhileWaiting)
+
+        // Complete the gesture (release touch)
+        trace("up() after long click") { onNodeWithTag(CAPTURE_BUTTON).performTouchInput { up() } }
     }
-    waitUntilVideoRecordingDurationAtLeast(durationMillis, checkWhileWaiting)
-    onNodeWithTag(CAPTURE_BUTTON)
-        .assertExists()
-        .performTouchInput {
-            up()
-        }
 }
 
 fun ComposeTestRule.longClickForVideoRecording(durationMillis: Long = VIDEO_DURATION_MILLIS) {
-    onNodeWithTag(CAPTURE_BUTTON)
-        .assertExists()
-        .performTouchInput {
-            down(center)
+    trace("longClickForVideoRecording") {
+        onNodeWithTag(CAPTURE_BUTTON).assertExists().performTouchInput {
+            trace("down(center)") { down(center) }
+            trace("wait for long press and trigger onDragStart") {
+                advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+                moveBy(delta = Offset(1f, 0f))
+            }
+            trace("wait for duration") { advanceEventTime(durationMillis) }
+            trace("up()") { up() }
         }
-    idleForVideoDuration(durationMillis)
-    onNodeWithTag(CAPTURE_BUTTON)
-        .assertExists()
-        .performTouchInput {
-            up()
-        }
+    }
 }
 
 fun ComposeTestRule.tapStartLockedVideoRecording() {

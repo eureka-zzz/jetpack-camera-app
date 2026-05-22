@@ -73,6 +73,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
+import androidx.tracing.trace
 import com.google.jetpackcamera.model.CaptureMode
 import com.google.jetpackcamera.ui.uistate.capture.CaptureButtonUiState
 import kotlinx.coroutines.Job
@@ -212,22 +213,24 @@ internal fun CaptureButton(
         }
     }
     fun onLongPress() {
-        if (!isLongPressing.value) {
-            when (val current = currentUiState.value) {
-                is CaptureButtonUiState.Enabled.Idle -> when (current.captureMode) {
-                    CaptureMode.STANDARD,
-                    CaptureMode.VIDEO_ONLY -> {
-                        isLongPressing.value = true
-                        Log.d(TAG, "Starting recording")
-                        onStartRecording()
+        trace("CaptureButton.onLongPress") {
+            if (!isLongPressing.value) {
+                when (val current = currentUiState.value) {
+                    is CaptureButtonUiState.Enabled.Idle -> when (current.captureMode) {
+                        CaptureMode.STANDARD,
+                        CaptureMode.VIDEO_ONLY -> {
+                            isLongPressing.value = true
+                            Log.d(TAG, "Starting recording")
+                            onStartRecording()
+                        }
+
+                        CaptureMode.IMAGE_ONLY -> {
+                            isLongPressing.value = true
+                        }
                     }
 
-                    CaptureMode.IMAGE_ONLY -> {
-                        isLongPressing.value = true
-                    }
+                    else -> {}
                 }
-
-                else -> {}
             }
         }
     }
@@ -340,7 +343,7 @@ private fun CaptureButton(
     captureButtonSize: Float = DEFAULT_CAPTURE_BUTTON_SIZE
 ) {
     // todo: explore MutableInteractionSource
-    var isCaptureButtonPressed by remember {
+    var isTapping by remember {
         mutableStateOf(false)
     }
 
@@ -392,7 +395,7 @@ private fun CaptureButton(
     fun toggleSwitchPosition() = if (shouldBeLocked()) {
         switchPosition = LOCK_SWITCH_POSITION_OFF
     } else {
-        if (!isCaptureButtonPressed) {
+        if (!isTapping) {
             onLockVideoRecording(true)
         } else {
             switchPosition =
@@ -407,10 +410,15 @@ private fun CaptureButton(
                     // touch is dragged off the component
                     onLongPress = {},
                     onPress = {
-                        isCaptureButtonPressed = true
-                        onPress()
-                        awaitRelease()
-                        isCaptureButtonPressed = false
+                        isTapping = true
+                        try {
+                            trace("CaptureButton.onPress") {
+                                onPress()
+                            }
+                            awaitRelease()
+                        } finally {
+                            isTapping = false
+                        }
                         if (shouldBeLocked()) {
                             onLockVideoRecording(true)
                             onRelease(true)
@@ -424,35 +432,45 @@ private fun CaptureButton(
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = {},
-                    onDragEnd = {},
-                    onDragCancel = {},
+                    onDragEnd = {
+                        trace("CaptureButton.onDragEnd") {
+                            onRelease(shouldBeLocked())
+                        }
+                    },
+                    onDragCancel = {
+                        trace("CaptureButton.onDragCancel") {
+                            onRelease(false)
+                        }
+                    },
                     onDrag = { change, deltaOffset ->
-                        if (currentUiState.value ==
-                            CaptureButtonUiState.Enabled.Recording.PressedRecording
-                        ) {
-                            val newPoint = change.position
+                        trace("CaptureButton.onDrag") {
+                            if (currentUiState.value ==
+                                CaptureButtonUiState.Enabled.Recording.PressedRecording
+                            ) {
+                                val newPoint = change.position
 
-                            // update position of lock switch
-                            setLockSwitchPosition(newPoint.x, deltaOffset.x)
+                                // update position of lock switch
+                                setLockSwitchPosition(newPoint.x, deltaOffset.x)
 
-                            // update zoom
-                            val previousPoint = change.position - deltaOffset
-                            val positiveDistance =
-                                if (newPoint.y >= 0 && previousPoint.y >= 0) {
-                                    // 0 if both points are within bounds
-                                    0f
-                                } else if (newPoint.y < 0 && previousPoint.y < 0) {
-                                    deltaOffset.y
-                                } else if (newPoint.y <= 0) {
-                                    newPoint.y
-                                } else {
-                                    previousPoint.y
+                                // update zoom
+                                val previousPoint = change.position - deltaOffset
+                                val positiveDistance =
+                                    if (newPoint.y >= 0 && previousPoint.y >= 0) {
+                                        // 0 if both points are within bounds
+                                        0f
+                                    } else if (newPoint.y < 0 && previousPoint.y < 0) {
+                                        deltaOffset.y
+                                    } else if (newPoint.y <= 0) {
+                                        newPoint.y
+                                    } else {
+                                        previousPoint.y
+                                    }
+
+                                if (!positiveDistance.isNaN()) {
+                                    // todo(kc): should check the tuning of this.
+                                    val zoom = positiveDistance * -0.01f // Adjust sensitivity
+                                    onDragZoom(zoom)
                                 }
-
-                            if (!positiveDistance.isNaN()) {
-                                // todo(kc): should check the tuning of this.
-                                val zoom = positiveDistance * -0.01f // Adjust sensitivity
-                                onDragZoom(zoom)
                             }
                         }
                     }
@@ -488,7 +506,7 @@ private fun CaptureButton(
         } else {
             CaptureButtonNucleus(
                 captureButtonUiState = captureButtonUiState,
-                isPressed = isCaptureButtonPressed,
+                isTapping = isTapping,
                 captureButtonSize = captureButtonSize
             )
         }
@@ -591,7 +609,7 @@ private fun LockSwitchCaptureButtonNucleus(
             captureButtonSize = captureButtonSize,
             captureButtonUiState = captureButtonUiState,
             pressedVideoCaptureScale = LOCK_SWITCH_PRESSED_NUCLEUS_SCALE,
-            isPressed = false
+            isTapping = false
         )
 
         // locked icon, matches cylinder offset
@@ -637,7 +655,7 @@ private fun LockSwitchCaptureButtonNucleus(
 private fun CaptureButtonNucleus(
     modifier: Modifier = Modifier,
     captureButtonUiState: CaptureButtonUiState,
-    isPressed: Boolean,
+    isTapping: Boolean,
     captureButtonSize: Float,
     offsetX: Dp = 0.dp,
     recordingColor: Color = Color.Red,
@@ -706,7 +724,7 @@ private fun CaptureButtonNucleus(
                     .size(centerShapeSize)
                     .clip(CircleShape)
                     .alpha(
-                        if (isPressed &&
+                        if (isTapping &&
                             currentUiState.value ==
                             CaptureButtonUiState.Enabled.Idle(CaptureMode.IMAGE_ONLY)
                         ) {
@@ -771,7 +789,7 @@ private fun IdleStandardCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.STANDARD),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -783,7 +801,7 @@ private fun IdleImageCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.IMAGE_ONLY),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -795,7 +813,7 @@ private fun IdleVideoOnlyCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.VIDEO_ONLY),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -810,7 +828,7 @@ private fun IdleStandardCaptureButtonDisabledPreview() {
                 CaptureMode.STANDARD,
                 isEnabled = false
             ),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -825,7 +843,7 @@ private fun IdleImageCaptureButtonDisabledPreview() {
                 CaptureMode.IMAGE_ONLY,
                 isEnabled = false
             ),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -840,7 +858,7 @@ private fun IdleVideoOnlyCaptureButtonDisabledPreview() {
                 CaptureMode.VIDEO_ONLY,
                 isEnabled = false
             ),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -852,7 +870,7 @@ private fun PressedImageCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.IMAGE_ONLY),
-            isPressed = true,
+            isTapping = true,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -864,7 +882,7 @@ private fun IdleRecordingCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.VIDEO_ONLY),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -876,7 +894,7 @@ private fun SimpleNucleusPressedRecordingPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Recording.PressedRecording,
-            isPressed = true,
+            isTapping = true,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -888,7 +906,7 @@ private fun LockedRecordingPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Recording.LockedRecording,
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }

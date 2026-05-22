@@ -30,6 +30,8 @@ When reviewing a pull request, focus on the following key areas:
     * Scan for inefficient operations, especially within Composable functions (e.g., expensive calculations, improper state management leading to excessive recompositions).
     * Analyze camera configurations and use cases for potential performance bottlenecks.
     * Ensure coroutines and asynchronous operations are used efficiently.
+    * **Deferred State Reading with Lambdas:** Pass lambda providers `() -> T` instead of raw values `T` to child composables when dealing with high-frequency updates (e.g., timers), to isolate recompositions to the child component. [Introduced in PR #515]
+    * **State Conflation in Adapters:** High-frequency stream data (e.g., nanosecond timestamps) should be rounded or conflated at the `UiStateAdapter` level before reaching the UI state, to avoid unnecessary recompositions. [Introduced in PR #514]
 
 4.  **Jetpack Compose & CameraX Usage**
     * Verify that Compose and CameraX APIs are used correctly and effectively.
@@ -69,6 +71,7 @@ When reviewing a pull request, focus on the following key areas:
     *   **Scrutinize Debug Logs:** Question the use of `Log.d`, `Log.v`, and especially `println()`. These are often remnants of debugging and should be removed before merging unless they provide essential, long-term value. Calls to `println()` should always be replaced with a proper `Log` method.
     *   **KDoc for Complexity:** For new or significantly modified functions that are complex, have non-obvious logic, or a large number of parameters, suggest adding KDoc comments. Good documentation should explain the function's purpose, its parameters, and what it returns.
     *   **Keep KDoc Synchronized:** If a PR modifies a function with existing KDocs, verify that the comments are still accurate. Outdated documentation can be more misleading than no documentation at all.
+    *   **Trace Naming Scheme:** Standardize on `ComponentName.actionName` or `ClassName.methodName` for custom trace sections to make them easily searchable in Perfetto. [Introduced in PR #518]
 
 11. **KDoc Documentation Standards**
     *   **Document all non-private members:** All non-private classes, functions, and composables must have KDoc documentation.
