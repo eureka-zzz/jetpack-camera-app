@@ -32,7 +32,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
-import androidx.test.services.storage.TestStorage
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
@@ -79,13 +78,6 @@ internal val compatMainActivityExtras: Bundle?
             extras.putString(MainActivity.KEY_DEBUG_SINGLE_LENS_MODE, "back")
         }
 
-        val resolver = InstrumentationRegistry.getInstrumentation().targetContext.contentResolver
-        val args = TestStorage(resolver).getInputArgs()
-        val disableAnimations = args["disable_animations"]?.toBoolean() ?: false
-        if (disableAnimations) {
-            extras.putBoolean("KEY_DISABLE_ANIMATIONS", true)
-        }
-
         return extras.takeIf { !it.isEmpty() }
     }
 
@@ -95,7 +87,7 @@ internal val compatMainActivityExtras: Bundle?
  * @param extras The extras to merge with the compat extras.
  * @return The merged bundle, or null if there are no extras.
  */
-internal fun mergeWithCompatExtras(extras: Bundle?): Bundle? {
+fun mergeWithCompatExtras(extras: Bundle?): Bundle? {
     return compatMainActivityExtras?.apply { extras?.let { putAll(it) } } ?: extras
 }
 

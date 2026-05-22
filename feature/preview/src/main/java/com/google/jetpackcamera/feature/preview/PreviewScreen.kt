@@ -109,6 +109,7 @@ import com.google.jetpackcamera.ui.uistate.capture.AudioUiState
 import com.google.jetpackcamera.ui.uistate.capture.CaptureButtonUiState
 import com.google.jetpackcamera.ui.uistate.capture.CaptureModeToggleUiState
 import com.google.jetpackcamera.ui.uistate.capture.DebugUiState
+import com.google.jetpackcamera.ui.uistate.capture.ElapsedTimeUiState
 import com.google.jetpackcamera.ui.uistate.capture.FlipLensUiState
 import com.google.jetpackcamera.ui.uistate.capture.ImageWellUiState
 import com.google.jetpackcamera.ui.uistate.capture.ZoomControlUiState
@@ -236,7 +237,16 @@ fun PreviewScreen(
             )
         }
         // todo(kc) handle reset certain values after video recording is complete
-        LaunchedEffect(currentUiState.videoRecordingState) {
+        val recordingStateKey = remember {
+            derivedStateOf {
+                when (currentUiState.videoRecordingState) {
+                    is VideoRecordingState.Starting -> 1
+                    is VideoRecordingState.Inactive -> 2
+                    else -> 0
+                }
+            }
+        }
+        LaunchedEffect(recordingStateKey.value) {
             with(currentUiState.videoRecordingState) {
                 when (this) {
                     is VideoRecordingState.Starting -> {
@@ -535,21 +545,26 @@ private fun ContentScreen(
 
     val elapsedTimeDisplayLambda = remember {
         @Composable { modifier: Modifier ->
-            val readyState = captureUiStateProvider()
-            if (readyState != null) {
-                AnimatedVisibility(
-                    visible = (readyState.videoRecordingState is VideoRecordingState.Active),
-                    enter = fadeIn(),
-                    exit = fadeOut(animationSpec = tween(delayMillis = 1_500))
-                ) {
-                    val elapsedTimeModifier = remember(modifier) {
-                        modifier.testTag(ELAPSED_TIME_TAG)
-                    }
-                    ElapsedTimeText(
-                        modifier = elapsedTimeModifier,
-                        elapsedTimeUiState = readyState.elapsedTimeUiState
-                    )
+            val isVisible = remember {
+                derivedStateOf {
+                    captureUiStateProvider()?.videoRecordingState is VideoRecordingState.Active
                 }
+            }
+            AnimatedVisibility(
+                visible = isVisible.value,
+                enter = fadeIn(),
+                exit = fadeOut(animationSpec = tween(delayMillis = 1_500))
+            ) {
+                val elapsedTimeModifier = remember(modifier) {
+                    modifier.testTag(ELAPSED_TIME_TAG)
+                }
+                ElapsedTimeText(
+                    modifier = elapsedTimeModifier,
+                    formattedTimeProvider = {
+                        captureUiStateProvider()?.elapsedTimeUiState
+                            ?: ElapsedTimeUiState.Unavailable
+                    }
+                )
             }
         }
     }
