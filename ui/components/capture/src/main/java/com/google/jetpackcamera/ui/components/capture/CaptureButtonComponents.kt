@@ -72,12 +72,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
+import androidx.tracing.trace
 import com.google.jetpackcamera.model.CaptureMode
 import com.google.jetpackcamera.ui.uistate.capture.CaptureButtonUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.tracing.trace
 
 private const val TAG = "CaptureButton"
 private const val DEFAULT_CAPTURE_BUTTON_SIZE = 80f
@@ -590,7 +590,7 @@ private fun LockSwitchCaptureButtonNucleus(
             captureButtonSize = captureButtonSize,
             captureButtonUiState = captureButtonUiState,
             pressedVideoCaptureScale = LOCK_SWITCH_PRESSED_NUCLEUS_SCALE,
-            isPressed = false
+            isTapping = false
         )
 
         // locked icon, matches cylinder offset
@@ -754,7 +754,7 @@ private fun IdleStandardCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.STANDARD),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -766,7 +766,7 @@ private fun IdleImageCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.IMAGE_ONLY),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -778,7 +778,7 @@ private fun IdleVideoOnlyCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.VIDEO_ONLY),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -793,7 +793,7 @@ private fun IdleStandardCaptureButtonDisabledPreview() {
                 CaptureMode.STANDARD,
                 isEnabled = false
             ),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -808,7 +808,7 @@ private fun IdleImageCaptureButtonDisabledPreview() {
                 CaptureMode.IMAGE_ONLY,
                 isEnabled = false
             ),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -823,7 +823,7 @@ private fun IdleVideoOnlyCaptureButtonDisabledPreview() {
                 CaptureMode.VIDEO_ONLY,
                 isEnabled = false
             ),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -835,7 +835,7 @@ private fun PressedImageCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.IMAGE_ONLY),
-            isPressed = true,
+            isTapping = true,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -847,7 +847,7 @@ private fun IdleRecordingCaptureButtonPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Idle(CaptureMode.VIDEO_ONLY),
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -859,7 +859,7 @@ private fun SimpleNucleusPressedRecordingPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Recording.PressedRecording,
-            isPressed = true,
+            isTapping = true,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }
@@ -871,7 +871,7 @@ private fun LockedRecordingPreview() {
     CaptureButtonRing(captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE, color = Color.White) {
         CaptureButtonNucleus(
             captureButtonUiState = CaptureButtonUiState.Enabled.Recording.LockedRecording,
-            isPressed = false,
+            isTapping = false,
             captureButtonSize = DEFAULT_CAPTURE_BUTTON_SIZE
         )
     }

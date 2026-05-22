@@ -42,6 +42,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToString
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.action.ViewActions.swipeDown
+import androidx.tracing.trace
 import com.google.common.truth.Truth.assertThat
 import com.google.errorprone.annotations.CanIgnoreReturnValue
 import com.google.jetpackcamera.model.CaptureMode
@@ -71,7 +72,6 @@ import com.google.jetpackcamera.ui.components.capture.R as CaptureR
 import com.google.jetpackcamera.ui.components.capture.SETTINGS_BUTTON
 import com.google.jetpackcamera.ui.components.capture.VIDEO_CAPTURE_FAILURE_TAG
 import org.junit.AssumptionViolatedException
-import androidx.tracing.trace
 
 /**
  * Allows use of testRule.onNodeWithText that uses an integer string resource
