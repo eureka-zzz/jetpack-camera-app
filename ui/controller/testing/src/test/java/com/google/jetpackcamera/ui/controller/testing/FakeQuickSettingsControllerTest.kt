@@ -79,6 +79,21 @@ class FakeQuickSettingsControllerTest {
     }
 
     @Test
+    fun setDynamicRangeAndImageFormat_invokesAction() {
+        var dynamicRangeValue: DynamicRange? = null
+        var imageFormatValue: ImageOutputFormat? = null
+        val controller = FakeQuickSettingsController(
+            setDynamicRangeAction = { dynamicRangeValue = it },
+            setImageFormatAction = { imageFormatValue = it }
+        )
+
+        controller.setDynamicRangeAndImageFormat(DynamicRange.HLG10, ImageOutputFormat.JPEG_ULTRA_HDR)
+
+        assertThat(dynamicRangeValue).isEqualTo(DynamicRange.HLG10)
+        assertThat(imageFormatValue).isEqualTo(ImageOutputFormat.JPEG_ULTRA_HDR)
+    }
+
+    @Test
     fun setImageFormat_invokesAction() {
         var calledValue: ImageOutputFormat? = null
         val controller = FakeQuickSettingsController(setImageFormatAction = { calledValue = it })
