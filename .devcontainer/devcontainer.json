@@ -1,0 +1,14 @@
+{
+  "name": "android-ai-lab",
+  "image": "mcr.microsoft.com/devcontainers/java:17-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "latest"
+    }
+  },
+  "runargs": [
+    "--privileged"
+  ],
+  "remoteuser": "root",
+  "postcreatecommand": "bash .devcontainer/setup.sh"
+}
